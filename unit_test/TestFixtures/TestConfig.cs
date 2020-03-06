@@ -7,7 +7,7 @@ using System.IO;
 namespace unit_test.TestFixtures
 {
     // Define a custom section. The CustomSection type allows to define a custom section programmatically.
-    public sealed class CustomSection1 : ConfigurationSection
+    public class CustomSection1 : ConfigurationSection
     {
         // The collection (property bag) that contains the section properties.
         private static ConfigurationPropertyCollection properties;
@@ -124,6 +124,250 @@ namespace unit_test.TestFixtures
         }
     }
 
+    public class CustomConfigElement1 : ConfigurationElement
+    {
+        // Constructor allowing property1, property2, and property3 to be specified.
+        public CustomConfigElement1(string property1, string property2, int property3)
+        {
+            Property1 = property1;
+            Property2 = property2;
+            Property3 = property3;
+        }
+
+        // Default constructor, will use default values as defined below.
+        public CustomConfigElement1()
+        {
+        }
+
+        // Constructor allowing property1 to be specified, will take the default values for property2 and property3.
+        public CustomConfigElement1(string property1)
+        {
+            Property1 = property1;
+        }
+
+        [ConfigurationProperty("e1property1", DefaultValue = "default1", IsRequired = true, IsKey = true)]
+        public string Property1
+        {
+            get
+            {
+                return (string)this["e1property1"];
+            }
+            set
+            {
+                this["e1property1"] = value;
+            }
+        }
+
+        [ConfigurationProperty("e1property2", DefaultValue = "http://www.microsoft.com", IsRequired = true)]
+        [RegexStringValidator(@"\w+:\/\/[\w.]+\S*")]
+        public string Property2 
+        {
+            get
+            {
+                return (string)this["e1property2"];
+            }
+            set
+            {
+                this["e1property2"] = value;
+            }
+        }
+
+        [ConfigurationProperty("e1property3", DefaultValue = (int)3, IsRequired = false)]
+        [IntegerValidator(MinValue = 0, MaxValue = 10000, ExcludeRange = false)]
+        public int Property3 
+        {
+            get
+            {
+                return (int)this["e1property3"];
+            }
+            set
+            {
+                this["e1property3"] = value;
+            }
+        }
+    }
+
+    public class CustomConfigElement1Collection1 : ConfigurationElementCollection
+    {
+        public CustomConfigElement1Collection1()
+        {
+            // Add one element to the collection.  This is
+            // not necessary; could leave the collection 
+            // empty until items are added to it outside
+            // the constructor.
+            CustomConfigElement1 tmp = (CustomConfigElement1)CreateNewElement();
+            Add(tmp);
+        }
+
+        public override ConfigurationElementCollectionType CollectionType
+        {
+            get
+            {
+                return ConfigurationElementCollectionType.AddRemoveClearMap;
+            }
+        }
+
+        protected override ConfigurationElement CreateNewElement()
+        {
+            return new CustomConfigElement1();
+        }
+
+        protected override ConfigurationElement CreateNewElement(string property1)
+        {
+            return new CustomConfigElement1(property1);
+        }
+
+        protected override System.Object GetElementKey(ConfigurationElement element)
+        {
+            return ((CustomConfigElement1)element).Property1;
+        }
+
+
+        public CustomConfigElement1 this[int index]
+        {
+            get
+            {
+                return (CustomConfigElement1)BaseGet(index);
+            }
+            set
+            {
+                if (BaseGet(index) != null)
+                {
+                    BaseRemoveAt(index);
+                }
+                BaseAdd(index, value);
+            }
+        }
+
+        new public CustomConfigElement1 this[string k]
+        {
+            get
+            {
+                return (CustomConfigElement1)BaseGet(k);
+            }
+        }
+
+        public void Add(CustomConfigElement1 e)
+        {
+            BaseAdd(e);
+        }
+
+        protected override void BaseAdd(ConfigurationElement element)
+        {
+            BaseAdd(element, false);
+        }
+    }
+
+    public class CustomConfigElement1Collection2 : ConfigurationElementCollection
+    {
+        public override ConfigurationElementCollectionType CollectionType
+        {
+            get
+            {
+                return ConfigurationElementCollectionType.BasicMap; // different with CustomConfigElement1Collection1
+            }
+        }
+
+        protected override ConfigurationElement CreateNewElement()
+        {
+            return new CustomConfigElement1();
+        }
+
+        protected override System.Object GetElementKey(ConfigurationElement element)
+        {
+            return ((CustomConfigElement1)element).Property1;
+        }
+
+        public CustomConfigElement1 this[int index]
+        {
+            get
+            {
+                return (CustomConfigElement1)BaseGet(index);
+            }
+        }
+
+        protected override string ElementName
+        {
+            get
+            {
+                return "element1name";
+            }
+        }
+    }
+
+    // Implement and use a custom section implemented using the attributed model.
+    // Define a custom section containing an individual element and a collection of elements.
+    public class CustomSection2 : ConfigurationSection
+    {
+        [ConfigurationProperty("property1", DefaultValue = "default1", IsRequired = true, IsKey = false)]
+        [StringValidator(InvalidCharacters = " ~!@#$%^&*()[]{}/;'\"|\\", MinLength = 1, MaxLength = 60)]
+        public string Property1
+        {
+            get
+            {
+                return (string)this["property1"];
+            }
+            set
+            {
+                this["property1"] = value;
+            }
+        }
+
+        [ConfigurationProperty("property2", DefaultValue = "default2", IsRequired = true, IsKey = false)]
+        [StringValidator(InvalidCharacters = " ~!@#$%^&*()[]{}/;'\"|\\", MinLength = 1, MaxLength = 60)]
+        public string Property2
+        {
+            get
+            {
+                return (string)this["property2"];
+            }
+            set
+            {
+                this["property2"] = value;
+            }
+        }
+
+        // Declare an element (not in a collection) of the type
+        // CustomConfigElement1. In the configuration
+        // file it corresponds to <element1 .... />.
+        [ConfigurationProperty("element1")]
+        public CustomConfigElement1 Element1 
+        {
+            get
+            {
+                CustomConfigElement1 element1 = (CustomConfigElement1)base["element1"];
+                return element1;
+            }
+        }
+
+
+        // Declare a collection element represented 
+        // in the configuration file by the sub-section
+        // <element1Collection> <add .../> </element1Collection> 
+        // Note: the "IsDefaultCollection = false" 
+        // instructs the .NET Framework to build a nested 
+        // section like <element1Collection1> ...</element1Collection1>.
+        [ConfigurationProperty("element1Collection1", IsDefaultCollection = false)]
+        public CustomConfigElement1Collection1 Element1Collection1
+        {
+            get
+            {
+                CustomConfigElement1Collection1 collection = (CustomConfigElement1Collection1)base["element1Collection1"];
+                return collection;
+            }
+        }
+
+        [ConfigurationProperty("element1Collection2", IsDefaultCollection = false)]
+        public CustomConfigElement1Collection2 Element1Collection2
+        {
+            get
+            {
+                CustomConfigElement1Collection2 collection = (CustomConfigElement1Collection2)base["element1Collection2"];
+                return collection;
+            }
+        }
+    }
+
     class TestConfig
     {
         string configFilePath;
@@ -146,12 +390,24 @@ namespace unit_test.TestFixtures
                 "<configuration>\n" +
                 "  <configSections>\n" +
                 "    <section name=\"CustomSection1\" type=\"unit_test.TestFixtures.CustomSection1, unit_test, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null\" allowDefinition=\"Everywhere\" allowExeDefinition=\"MachineToApplication\" restartOnExternalChanges=\"true\" />\n" +
+                "    <section name=\"CustomSection2\" type=\"unit_test.TestFixtures.CustomSection2, unit_test, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null\" allowDefinition=\"Everywhere\" allowExeDefinition=\"MachineToApplication\" restartOnExternalChanges=\"true\" />\n" +
                 "  </configSections>\n" +
                 "  <appSettings>\n" +
                 "    <add key=\"Setting1\" value=\"May 5, 2014\"/>\n" +
                 "    <add key=\"Setting2\" value=\"May 6, 2014\"/>\n" +
                 "  </appSettings>\n" +
                 "  <CustomSection1 fileName=\"default.txt\" maxUsers=\"1000\" maxIdleTime=\"00:15:00\" />\n" + 
+                "  <CustomSection2 property1=\"a\" property2=\"b\">\n" + 
+                "    <element1 e1property1=\"abc\" e1property2=\"http://www.xxx.com\" e1property3=\"300\" />\n" +
+                "    <element1Collection1>\n" +
+                "      <add e1property1=\"k1\" e1property2=\"http://www.xxx.com\" e1property3=\"300\" />\n" +
+                "      <add e1property1=\"k2\" e1property2=\"http://www.xxx.com\" e1property3=\"400\" />\n" +
+                "    </element1Collection1>\n" +
+                "    <element1Collection2>\n" +
+                "      <element1name e1property1=\"k1\" e1property2=\"http://www.xxx.com\" e1property3=\"300\" />\n" +
+                "      <element1name e1property1=\"k2\" e1property2=\"http://www.xxx.com\" e1property3=\"400\" />\n" +
+                "    </element1Collection2>\n" +
+                "  </CustomSection2>\n" +
                 "</configuration>\n";
             System.IO.File.WriteAllText(configFilePath, text);
         }
@@ -177,14 +433,34 @@ namespace unit_test.TestFixtures
 
             var appSettings = configuration.AppSettings;
 
-            Assert.AreEqual(appSettings.Settings["Setting1"].Value, "May 5, 2014");
-            Assert.AreEqual(appSettings.Settings["Setting2"].Value, "May 6, 2014");
+            Assert.AreEqual("May 5, 2014", appSettings.Settings["Setting1"].Value);
+            Assert.AreEqual("May 6, 2014", appSettings.Settings["Setting2"].Value);
 
             CustomSection1 customSection1 = configuration.GetSection("CustomSection1") as CustomSection1;
             Assert.IsNotNull(customSection1);
-            Assert.AreEqual(customSection1.FileName, "default.txt");
-            Assert.AreEqual(customSection1.MaxUsers, 1000);
-            Assert.AreEqual(customSection1.MaxIdleTime, System.TimeSpan.Parse("00:15:00"));
+            Assert.AreEqual("default.txt", customSection1.FileName);
+            Assert.AreEqual(1000, customSection1.MaxUsers);
+            Assert.AreEqual(System.TimeSpan.Parse("00:15:00"), customSection1.MaxIdleTime);
+
+            var customSection2 = configuration.GetSection("CustomSection2") as CustomSection2;
+            Assert.IsNotNull(customSection2);
+            Assert.AreEqual("a", customSection2.Property1);
+            Assert.AreEqual("b", customSection2.Property2);
+
+            Assert.AreEqual("abc", customSection2.Element1.Property1);
+            Assert.AreEqual("http://www.xxx.com", customSection2.Element1.Property2);
+            Assert.AreEqual(300, customSection2.Element1.Property3);
+
+            Assert.AreEqual(3, customSection2.Element1Collection1.Count);
+            Assert.AreEqual("default1", customSection2.Element1Collection1[0].Property1);
+            Assert.AreEqual("default1", customSection2.Element1Collection1["default1"].Property1);
+            Assert.AreEqual("k1", customSection2.Element1Collection1[1].Property1);
+            Assert.AreEqual("k1", customSection2.Element1Collection1["k1"].Property1);
+            Assert.AreEqual("k2", customSection2.Element1Collection1[2].Property1);
+            Assert.AreEqual("k2", customSection2.Element1Collection1["k2"].Property1);
+
+            Assert.AreEqual(2, customSection2.Element1Collection2.Count);
         }
     }
 }
+
