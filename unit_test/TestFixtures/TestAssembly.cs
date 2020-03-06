@@ -14,7 +14,7 @@ namespace unit_test.TestFixtures
 
     public class Example { }
 
-    class Assembly
+    class TestAssembly
     {
         [SetUp]
         public void Setup()
