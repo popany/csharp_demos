@@ -368,6 +368,122 @@ namespace unit_test.TestFixtures
         }
     }
 
+    public class CustomConfigElement2 : ConfigurationElement
+    {
+
+        [ConfigurationProperty("e2property1", DefaultValue = "default1", IsRequired = true, IsKey = true)]
+        public string Property1
+        {
+            get
+            {
+                return (string)this["e2property1"];
+            }
+        }
+
+        [ConfigurationProperty("e2element1")]
+        public CustomConfigElement1 Element1
+        {
+            get
+            {
+                CustomConfigElement1 element1 = (CustomConfigElement1)base["e2element1"];
+                return element1;
+            }
+        }
+    }
+
+    public class CustomConfigElement3Collection1 : ConfigurationElementCollection
+    {
+        public override ConfigurationElementCollectionType CollectionType
+        {
+            get
+            {
+                return ConfigurationElementCollectionType.BasicMap;
+            }
+        }
+
+        protected override ConfigurationElement CreateNewElement()
+        {
+            return new CustomConfigElement2();
+        }
+
+        protected override System.Object GetElementKey(ConfigurationElement element)
+        {
+            return ((CustomConfigElement2)element).Property1;
+        }
+
+        public CustomConfigElement2 this[int index]
+        {
+            get
+            {
+                return (CustomConfigElement2)BaseGet(index);
+            }
+        }
+
+        protected override string ElementName
+        {
+            get
+            {
+                return "e3c1element2name";
+            }
+        }
+    }
+
+    public class CustomConfigElement3 : ConfigurationElement
+    {
+
+        [ConfigurationProperty("e3property1", DefaultValue = "default1", IsRequired = true, IsKey = true)]
+        public string Property1
+        {
+            get
+            {
+                return (string)this["e3property1"];
+            }
+        }
+
+        [ConfigurationProperty("e3element1", IsRequired = false)]
+        public CustomConfigElement1 Element1
+        {
+            get
+            {
+                CustomConfigElement1 element1 = (CustomConfigElement1)base["e3element1"];
+                return element1;
+            }
+        }
+
+        [ConfigurationProperty("e3Collection1", IsDefaultCollection = false, IsRequired = false)]
+        public CustomConfigElement3Collection1 Element3Collection1
+        {
+            get
+            {
+                CustomConfigElement3Collection1 collection = (CustomConfigElement3Collection1)base["e3Collection1"];
+                return collection;
+            }
+        }
+    }
+
+    public class CustomSection3 : ConfigurationSection
+    {
+        [ConfigurationProperty("s3property1", DefaultValue = "default1", IsRequired = true, IsKey = false)]
+        [StringValidator(InvalidCharacters = " ~!@#$%^&*()[]{}/;'\"|\\", MinLength = 1, MaxLength = 60)]
+        public string Property1
+        {
+            get
+            {
+                return (string)this["s3property1"];
+            }
+        }
+
+        [ConfigurationProperty("s3element3")]
+        public CustomConfigElement3 Element
+        {
+            get
+            {
+                CustomConfigElement3 element = (CustomConfigElement3)base["s3element3"];
+                return element;
+            }
+        }
+    }
+
     class TestConfig
     {
         string configFilePath;
@@ -391,6 +507,7 @@ namespace unit_test.TestFixtures
                 "  <configSections>\n" +
                 "    <section name=\"CustomSection1\" type=\"unit_test.TestFixtures.CustomSection1, unit_test, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null\" allowDefinition=\"Everywhere\" allowExeDefinition=\"MachineToApplication\" restartOnExternalChanges=\"true\" />\n" +
                 "    <section name=\"CustomSection2\" type=\"unit_test.TestFixtures.CustomSection2, unit_test, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null\" allowDefinition=\"Everywhere\" allowExeDefinition=\"MachineToApplication\" restartOnExternalChanges=\"true\" />\n" +
+                "    <section name=\"CustomSection3\" type=\"unit_test.TestFixtures.CustomSection3, unit_test, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null\" allowDefinition=\"Everywhere\" allowExeDefinition=\"MachineToApplication\" restartOnExternalChanges=\"true\" />\n" +
                 "  </configSections>\n" +
                 "  <appSettings>\n" +
                 "    <add key=\"Setting1\" value=\"May 5, 2014\"/>\n" +
@@ -408,6 +525,19 @@ namespace unit_test.TestFixtures
                 "      <element1name e1property1=\"k2\" e1property2=\"http://www.xxx.com\" e1property3=\"400\" />\n" +
                 "    </element1Collection2>\n" +
                 "  </CustomSection2>\n" +
+                "  <CustomSection3 s3property1=\"sss\">\n" +
+                "    <s3element3 e3property1=\"ttt\">\n" +
+                "      <e3element1 e1property1=\"kkk\" e1property2=\"http://www.xxx.com\" e1property3=\"300\" />\n" +
+                "      <e3Collection1>\n" +
+                "        <e3c1element2name e2property1=\"hhh111\">\n" +
+                "          <e2element1 e1property1=\"qqq111\" e1property2=\"http://www.xxx.com\" e1property3=\"300\" />\n" +
+                "        </e3c1element2name>\n" +
+                "        <e3c1element2name e2property1=\"hhh222\">\n" +
+                "          <e2element1 e1property1=\"qqq222\" e1property2=\"http://www.xxx.com\" e1property3=\"300\" />\n" +
+                "        </e3c1element2name>\n" +
+                "      </e3Collection1>\n" +
+                "    </s3element3>\n" +
+                "  </CustomSection3>\n" +
                 "</configuration>\n";
             System.IO.File.WriteAllText(configFilePath, text);
         }
@@ -460,6 +590,18 @@ namespace unit_test.TestFixtures
             Assert.AreEqual("k2", customSection2.Element1Collection1["k2"].Property1);
 
             Assert.AreEqual(2, customSection2.Element1Collection2.Count);
+
+            var customSection3 = configuration.GetSection("CustomSection3") as CustomSection3;
+            Assert.IsNotNull(customSection3);
+            Assert.AreEqual("sss", customSection3.Property1);
+            Assert.AreEqual("ttt", customSection3.Element.Property1);
+            Assert.AreEqual("kkk", customSection3.Element.Element1.Property1);
+
+            Assert.AreEqual(2, customSection3.Element.Element3Collection1.Count);
+            Assert.AreEqual("hhh111", customSection3.Element.Element3Collection1[0].Property1);
+            Assert.AreEqual("qqq111", customSection3.Element.Element3Collection1[0].Element1.Property1);
+            Assert.AreEqual("hhh222", customSection3.Element.Element3Collection1[1].Property1);
+            Assert.AreEqual("qqq222", customSection3.Element.Element3Collection1[1].Element1.Property1);
         }
     }
 }
